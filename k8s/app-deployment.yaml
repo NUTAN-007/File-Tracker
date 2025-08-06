@@ -39,9 +39,6 @@ spec:
                 name: web-config
             - secretRef:
                 name: db-secret
-          env:
-            - name: POSTGRES_HOST
-              value: postgres
       volumes:
         - name: repo-volume
           emptyDir: {}
