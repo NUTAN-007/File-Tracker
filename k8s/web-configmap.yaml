@@ -4,4 +4,4 @@ metadata:
   name: web-config
   namespace: tracker-ns
 data:
-  TRACKED_FILE_PATH: "/home/mt25005/Downloads/test-tracker/tracked-file.txt"
+  TRACKED_FILE_PATH: "/repo/tracked-file.txt"

@@ -3,6 +3,7 @@ import time
 import subprocess
 import psycopg2
 from datetime import datetime
+import traceback
 
 REPO_DIR = "/repo"
 FILE_TO_TRACK = "tracked-file.txt"
@@ -19,27 +20,36 @@ def get_latest_commit_info():
     return author, timestamp
 
 def file_has_changed():
-    output = subprocess.check_output(["git", "-C", REPO_DIR, "pull"])
-    return b'Already up to date' not in output
+    subprocess.check_call(["git", "-C", REPO_DIR, "fetch"])
+    local_hash = subprocess.check_output(["git", "-C", REPO_DIR, "rev-parse", "HEAD"]).strip()
+    remote_hash = subprocess.check_output(["git", "-C", REPO_DIR, "rev-parse", "@{u}"]).strip()
+    return local_hash != remote_hash
 
-def insert_change(author, timestamp):
+def insert_change(author, timestamp, content):
     conn = psycopg2.connect(
         dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST
     )
     cur = conn.cursor()
-    cur.execute("INSERT INTO changes (author, timestamp) VALUES (%s, %s)", (author, timestamp))
+    cur.execute("INSERT INTO changes (author, timestamp, content) VALUES (%s, %s, %s)", 
+                (author, timestamp, content))
     conn.commit()
     conn.close()
 
 if __name__ == "__main__":
+    if not os.path.exists(os.path.join(REPO_DIR, ".git")):
+        raise RuntimeError(f"Git repo not found in {REPO_DIR}")
+
     while True:
         try:
             if file_has_changed():
+                subprocess.check_call(["git", "-C", REPO_DIR, "pull", "--rebase"])
                 author, timestamp = get_latest_commit_info()
+                with open(os.path.join(REPO_DIR, FILE_TO_TRACK), 'r') as f:
+                    content = f.read()
                 print(f"Detected change by {author} at {timestamp}")
-                insert_change(author, timestamp)
+                insert_change(author, timestamp, content)
             else:
                 print("No change detected.")
-        except Exception as e:
-            print("Error:", e)
+        except Exception:
+            traceback.print_exc()
         time.sleep(30)

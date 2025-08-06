@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: text-tracker-app
+  namespace: tracker-ns
 spec:
   replicas: 1
   selector:
@@ -21,8 +22,8 @@ spec:
             - name: repo-volume
               mountPath: /repo
           envFrom:
-            - secretRef:
-                name: db-secret   # 🔐 Inject secrets into web container
+            - configMapRef:
+                name: web-config
 
         - name: sidecar
           image: nutanpasham/text-tracker-sidecar:latest
@@ -30,8 +31,8 @@ spec:
             - name: repo-volume
               mountPath: /repo
           envFrom:
-            - secretRef:
-                name: db-secret   # 🔐 Inject secrets into sidecar container
+            - configMapRef:
+                name: web-config
 
       volumes:
         - name: repo-volume
