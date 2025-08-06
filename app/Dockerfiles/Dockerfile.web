@@ -1,9 +1,13 @@
 FROM python:3.9-slim
 
+# Install curl, net-tools, iproute2 (includes ss, netstat, etc.)
+RUN apt-get update && apt-get install -y curl iproute2 net-tools && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY app/web/requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/web .
 
+# Ensure Flask binds to 0.0.0.0
 CMD ["python", "app.py"]
