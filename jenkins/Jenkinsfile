@@ -33,9 +33,12 @@ pipeline {
                 withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
                     sh '''
                     kubectl apply -f k8s/namespace.yaml
+		    kubectl apply -f k8s/secret.yaml  
                     kubectl apply -f k8s/web-configmap.yaml
+		    kubectl apply -f k8s/postgres-deployment.yaml
                     kubectl apply -f k8s/app-deployment.yaml
                     kubectl apply -f k8s/app-service.yaml
+
                     '''
                 }
             }
