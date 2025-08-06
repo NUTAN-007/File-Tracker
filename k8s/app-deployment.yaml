@@ -20,6 +20,7 @@ spec:
           image: nutan007/text-tracker-web:latest
           ports:
             - containerPort: 5000
+      hostNetwork: true
           volumeMounts:
             - name: repo-volume
               mountPath: /repo
