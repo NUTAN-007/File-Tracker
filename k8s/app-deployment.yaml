@@ -36,7 +36,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: web-config
-
+            - secretRef:
+                name: db-secret
       volumes:
         - name: repo-volume
           emptyDir: {}
