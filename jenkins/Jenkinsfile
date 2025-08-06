@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_USER = 'nutanpasham'
+        DOCKER_HUB_USER = 'nutan007'
         IMAGE_WEB = "${DOCKER_HUB_USER}/text-tracker-web:latest"
         IMAGE_SIDECAR = "${DOCKER_HUB_USER}/text-tracker-sidecar:latest"
         KUBE_CONFIG = credentials('kubeconfig-credentials-id')
