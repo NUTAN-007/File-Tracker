@@ -1,39 +1,45 @@
-import os, time, subprocess
+import os
+import time
+import subprocess
 import psycopg2
 from datetime import datetime
 
 REPO_DIR = "/repo"
-GIT_URL = os.getenv("GIT_REPO_URL")
-DB_HOST = os.getenv("DB_HOST", "postgres")
-DB_NAME = os.getenv("DB_NAME", "trackdb")
-DB_USER = os.getenv("DB_USER", "tracker")
-DB_PASS = os.getenv("DB_PASS", "trackerpass")
+FILE_TO_TRACK = "tracked-file.txt"
+DB_NAME = os.getenv("POSTGRES_DB")
+DB_USER = os.getenv("POSTGRES_USER")
+DB_PASS = os.getenv("POSTGRES_PASSWORD")
+DB_HOST = os.getenv("POSTGRES_HOST", "postgres")
 
-def git_clone():
-    subprocess.run(["git", "clone", GIT_URL, REPO_DIR])
+def get_latest_commit_info():
+    author = subprocess.check_output(
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an"]).decode().strip()
+    timestamp = subprocess.check_output(
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI"]).decode().strip()
+    return author, timestamp
 
-def get_latest_commit():
-    author = subprocess.check_output(["git", "log", "-1", "--pretty=format:%an"], cwd=REPO_DIR).decode()
-    return author
+def file_has_changed():
+    output = subprocess.check_output(["git", "-C", REPO_DIR, "pull"])
+    return b'Already up to date' not in output
 
-def push_to_db(author):
-    conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST)
+def insert_change(author, timestamp):
+    conn = psycopg2.connect(
+        dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST
+    )
     cur = conn.cursor()
-    cur.execute("INSERT INTO changes (author) VALUES (%s)", (author,))
+    cur.execute("INSERT INTO changes (author, timestamp) VALUES (%s, %s)", (author, timestamp))
     conn.commit()
     conn.close()
 
-def run():
-    last_commit = ""
-    git_clone()
-    while True:
-        subprocess.run(["git", "pull"], cwd=REPO_DIR)
-        current_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO_DIR).decode().strip()
-        if current_commit != last_commit:
-            author = get_latest_commit()
-            push_to_db(author)
-            last_commit = current_commit
-        time.sleep(10)
-
 if __name__ == "__main__":
-    run()
+    while True:
+        try:
+            if file_has_changed():
+                author, timestamp = get_latest_commit_info()
+                print(f"Detected change by {author} at {timestamp}")
+                insert_change(author, timestamp)
+            else:
+                print("No change detected.")
+        except Exception as e:
+            print("Error:", e)
+        time.sleep(30)

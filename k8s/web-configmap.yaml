@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+  namespace: tracker-ns
+data:
+  TRACKED_FILE_PATH: "/home/mt25005/Downloads/test-tracker/tracked-file.txt"

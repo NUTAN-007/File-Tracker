@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_USER = 'nutanpasham'
+        IMAGE_WEB = "${DOCKER_HUB_USER}/text-tracker-web:latest"
+        IMAGE_SIDECAR = "${DOCKER_HUB_USER}/text-tracker-sidecar:latest"
+        KUBE_CONFIG = credentials('kubeconfig-credentials-id')  // Set this in Jenkins Credentials
+    }
+
+    stages {
+        stage('Build Images') {
+            steps {
+                script {
+                    sh 'docker build -t $IMAGE_WEB -f app/Dockerfiles/Dockerfile.web .'
+                    sh 'docker build -t $IMAGE_SIDECAR -f app/Dockerfiles/Dockerfile.sidecar .'
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh 'docker push $IMAGE_WEB'
+                    sh 'docker push $IMAGE_SIDECAR'
+                }
+            }
+        }
+
+        stage('Deploy to K8s') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
+                    sh '''
+                    kubectl apply -f k8s/configmap.yaml
+                    kubectl apply -f k8s/secrets.yaml
+                    kubectl apply -f k8s/postgres-deployment.yaml
+                    kubectl apply -f k8s/app-deployment.yaml
+                    kubectl apply -f k8s/app-service.yaml
+                    '''
+                }
+            }
+        }
+    }
+}
