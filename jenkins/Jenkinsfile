@@ -5,7 +5,7 @@ pipeline {
         DOCKER_HUB_USER = 'nutanpasham'
         IMAGE_WEB = "${DOCKER_HUB_USER}/text-tracker-web:latest"
         IMAGE_SIDECAR = "${DOCKER_HUB_USER}/text-tracker-sidecar:latest"
-        KUBE_CONFIG = credentials('kubeconfig-credentials-id')  // Set this in Jenkins Credentials
+        KUBE_CONFIG = credentials('kubeconfig-credentials-id')
     }
 
     stages {
@@ -32,9 +32,8 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
                     sh '''
-                    kubectl apply -f k8s/configmap.yaml
-                    kubectl apply -f k8s/secrets.yaml
-                    kubectl apply -f k8s/postgres-deployment.yaml
+                    kubectl apply -f k8s/namespace.yaml
+                    kubectl apply -f k8s/web-configmap.yaml
                     kubectl apply -f k8s/app-deployment.yaml
                     kubectl apply -f k8s/app-service.yaml
                     '''

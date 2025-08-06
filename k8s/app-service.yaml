@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: text-tracker-service
+  namespace: tracker-ns
+spec:
+  selector:
+    app: text-tracker
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: NodePort
