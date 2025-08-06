@@ -2,11 +2,12 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install Python dependencies
+# Install git and Python dependencies
+RUN apt-get update && apt-get install -y git
+
 COPY app/sidecar/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy tracker script
 COPY app/sidecar/tracker.py .
 
 CMD ["python", "tracker.py"]

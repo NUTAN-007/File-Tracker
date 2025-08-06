@@ -7,6 +7,8 @@ import traceback
 
 REPO_DIR = "/repo"
 FILE_TO_TRACK = "tracked-file.txt"
+GIT_REPO_URL = "https://github.com/NUTAN-007/File-Tracker.git"
+
 DB_NAME = os.getenv("POSTGRES_DB")
 DB_USER = os.getenv("POSTGRES_USER")
 DB_PASS = os.getenv("POSTGRES_PASSWORD")
@@ -37,7 +39,8 @@ def insert_change(author, timestamp, content):
 
 if __name__ == "__main__":
     if not os.path.exists(os.path.join(REPO_DIR, ".git")):
-        raise RuntimeError(f"Git repo not found in {REPO_DIR}")
+        print("Cloning repo into /repo...")
+        subprocess.check_call(["git", "clone", GIT_REPO_URL, REPO_DIR])
 
     while True:
         try:
