@@ -13,9 +13,11 @@ spec:
       labels:
         app: text-tracker
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: web
-          image: nutanpasham/text-tracker-web:latest
+          image: nutan007/text-tracker-web:latest
           ports:
             - containerPort: 5000
           volumeMounts:
@@ -26,7 +28,7 @@ spec:
                 name: web-config
 
         - name: sidecar
-          image: nutanpasham/text-tracker-sidecar:latest
+          image: nutan007/text-tracker-sidecar:latest
           volumeMounts:
             - name: repo-volume
               mountPath: /repo
