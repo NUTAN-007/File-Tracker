@@ -1,0 +1,6 @@
+FROM python:3.10
+RUN apt update && apt install -y git
+WORKDIR /app
+COPY tracker.py .
+RUN pip install psycopg2
+CMD ["python", "tracker.py"]
