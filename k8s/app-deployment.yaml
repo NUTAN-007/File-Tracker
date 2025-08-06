@@ -26,7 +26,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: web-config
-
+            - secretRef:
+                name: db-secret
         - name: sidecar
           image: nutan007/text-tracker-sidecar:latest
           volumeMounts:
