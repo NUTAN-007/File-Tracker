@@ -9,7 +9,7 @@ pipeline {
     }
 
     stages {
-        stage('Build Images') {
+        stage('Build Docker Images') {
             steps {
                 script {
                     sh 'docker build -t $IMAGE_WEB -f app/Dockerfiles/Dockerfile.web .'
@@ -18,7 +18,7 @@ pipeline {
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Push Images to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
@@ -28,23 +28,32 @@ pipeline {
             }
         }
 
-        stage('Deploy to K8s') {
+        stage('Deploy to Kubernetes') {
             environment {
                 POSTGRES_USER = credentials('pg-user')         // Jenkins secret text credential
                 POSTGRES_PASSWORD = credentials('pg-password') // Jenkins secret text credential
                 POSTGRES_DB = credentials('pg-db')             // Jenkins secret text credential
             }
+
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
                     sh '''
+                    # Create namespace
                     kubectl apply -f k8s/namespace.yaml
 
+                    # Create DB secret
                     kubectl create secret generic db-secret \
                       --from-literal=POSTGRES_USER=$POSTGRES_USER \
                       --from-literal=POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
                       --from-literal=POSTGRES_DB=$POSTGRES_DB \
                       -n tracker-ns --dry-run=client -o yaml | kubectl apply -f -
 
+                    # Create ConfigMap for init.sql
+                    kubectl create configmap init-sql \
+                      --from-file=init/init.sql \
+                      -n tracker-ns --dry-run=client -o yaml | kubectl apply -f -
+
+                    # Apply all manifests
                     kubectl apply -f k8s/web-configmap.yaml
                     kubectl apply -f k8s/postgres-deployment.yaml
                     kubectl apply -f k8s/app-deployment.yaml

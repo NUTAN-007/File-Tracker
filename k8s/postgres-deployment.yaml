@@ -24,9 +24,15 @@ spec:
           volumeMounts:
             - name: pgdata
               mountPath: /var/lib/postgresql/data
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d/init.sql
+              subPath: init.sql
       volumes:
         - name: pgdata
           emptyDir: {}
+        - name: init-script
+          configMap:
+            name: init-sql
 ---
 apiVersion: v1
 kind: Service
