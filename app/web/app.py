@@ -4,11 +4,10 @@ import psycopg2
 
 app = Flask(__name__)
 
-# Securely read values from Kubernetes Secret & ConfigMap (no fallbacks)
-DB_HOST = os.environ["DB_HOST"]               # From ConfigMap
-DB_NAME = os.environ["POSTGRES_DB"]           # From Secret
-DB_USER = os.environ["POSTGRES_USER"]         # From Secret
-DB_PASS = os.environ["POSTGRES_PASSWORD"]     # From Secret
+DB_HOST = os.environ["DB_HOST"]              
+DB_NAME = os.environ["POSTGRES_DB"]          
+DB_USER = os.environ["POSTGRES_USER"]        
+DB_PASS = os.environ["POSTGRES_PASSWORD"]    
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
