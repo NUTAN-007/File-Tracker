@@ -51,6 +51,9 @@ def file_has_changed():
     )
     remote_hash = remote_hash_result.stdout.strip()
 
+    print(f"[DEBUG] Local hash:  {local_hash}")
+    print(f"[DEBUG] Remote hash: {remote_hash}")
+
     return local_hash != remote_hash
 
 def insert_change(author, timestamp, content):
@@ -75,10 +78,13 @@ if __name__ == "__main__":
         print("Return code:", result.returncode)
         print("STDOUT:\n", result.stdout)
         print("STDERR:\n", result.stderr)
-        subprocess.run(
-            ["git", "-C", REPO_DIR, "branch", "--set-upstream-to=origin/main"],
-            check=True
-        )
+
+        # ✅ Checkout main branch explicitly
+        subprocess.run(["git", "-C", REPO_DIR, "checkout", "main"], check=True)
+
+        # ✅ Set upstream properly (after checkout)
+        subprocess.run(["git", "-C", REPO_DIR, "branch", "--set-upstream-to=origin/main", "main"], check=True)
+
         print("Repo cloned successfully. Starting to monitor changes...")
     else:
         print("Repo already exists. Starting to monitor changes...")
@@ -86,6 +92,7 @@ if __name__ == "__main__":
     while True:
         try:
             if file_has_changed():
+                print("[INFO] Change detected! Pulling latest changes...")
                 subprocess.run(
                     ["git", "-C", REPO_DIR, "pull", "--rebase"],
                     capture_output=True,
@@ -95,10 +102,11 @@ if __name__ == "__main__":
                 author, timestamp = get_latest_commit_info()
                 with open(os.path.join(REPO_DIR, FILE_TO_TRACK), 'r') as f:
                     content = f.read()
-                print(f"Detected change by {author} at {timestamp}")
+                print(f"[INFO] Change by {author} at {timestamp}")
                 insert_change(author, timestamp, content)
             else:
-                print("No change detected.")
-        except Exception:
+                print("[INFO] No change detected.")
+        except Exception as e:
+            print("[ERROR] An exception occurred:")
             traceback.print_exc()
         time.sleep(30)
