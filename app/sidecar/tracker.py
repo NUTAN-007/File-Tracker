@@ -42,7 +42,7 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.join(REPO_DIR, ".git")):
         print("Cloning repo into /repo...")
         subprocess.check_call(["git", "clone", GIT_REPO_URL, REPO_DIR])
-
+    print("Entering loop to monitor changes")
     while True:
         try:
             if file_has_changed():
