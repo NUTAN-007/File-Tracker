@@ -12,7 +12,7 @@ GIT_REPO_URL = "https://github.com/NUTAN-007/File-Tracker.git"
 DB_NAME = os.getenv("POSTGRES_DB")
 DB_USER = os.getenv("POSTGRES_USER")
 DB_PASS = os.getenv("POSTGRES_PASSWORD")
-DB_HOST = os.getenv("POSTGRES_HOST", "postgres")
+DB_HOST = os.getenv("POSTGRES_HOST", "postgres.tracker-ns")
 
 def get_latest_commit_info():
     author = subprocess.check_output(
