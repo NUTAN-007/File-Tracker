@@ -18,3 +18,4 @@ DevOps is a journey — not a destination. Start small, automate what hurts the 
 
 *“You build it, you run it.” – Werner Vogels*
 the end
+changes made
