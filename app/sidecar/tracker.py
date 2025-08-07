@@ -15,16 +15,16 @@ DB_PASS = os.getenv("POSTGRES_PASSWORD")
 DB_HOST = os.getenv("POSTGRES_HOST", "postgres.tracker-ns")
 
 def get_latest_commit_info():
-    author = subprocess.check_output(
+    author = subprocess.run(
         ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an"]).decode().strip()
-    timestamp = subprocess.check_output(
+    timestamp = subprocess.run(
         ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI"]).decode().strip()
     return author, timestamp
 
 def file_has_changed():
     subprocess.check_call(["git", "-C", REPO_DIR, "fetch"])
-    local_hash = subprocess.check_output(["git", "-C", REPO_DIR, "rev-parse", "HEAD"]).strip()
-    remote_hash = subprocess.check_output(["git", "-C", REPO_DIR, "rev-parse", "@{u}"]).strip()
+    local_hash = subprocess.run(["git", "-C", REPO_DIR, "rev-parse", "HEAD"]).strip()
+    remote_hash = subprocess.run(["git", "-C", REPO_DIR, "rev-parse", "@{u}"]).strip()
     return local_hash != remote_hash
 
 
