@@ -54,7 +54,7 @@ def file_has_changed():
     print(f"[DEBUG] Local hash:  {local_hash}")
     print(f"[DEBUG] Remote hash: {remote_hash}")
 
-    return local_hash == remote_hash
+    return local_hash != remote_hash
 
 def insert_change(author, timestamp, content):
     conn = psycopg2.connect(
