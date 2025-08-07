@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/sidecar/tracker.py .
 
-ENTRYPOINT ["python3", "tracker.py"]
+CMD ["python", "-u", "tracker.py"]
