@@ -46,7 +46,7 @@ if __name__ == "__main__":
     while True:
         try:
             if file_has_changed():
-                subprocess.check_call(["git", "-C", REPO_DIR, "pull", "--rebase"])
+                result = subprocess.run(["git", "-C", REPO_DIR, "pull", "--rebase"], check=True)
                 author, timestamp = get_latest_commit_info()
                 with open(os.path.join(REPO_DIR, FILE_TO_TRACK), 'r') as f:
                     content = f.read()
