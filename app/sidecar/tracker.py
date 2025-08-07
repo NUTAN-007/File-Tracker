@@ -45,6 +45,7 @@ if __name__ == "__main__":
         print("Return code:", result.returncode)
         print("STDOUT:\n", result.stdout)
         print("STDERR:\n", result.stderr)
+        subprocess.run(["git", "-C", REPO_DIR, "branch", "--set-upstream-to=origin/main"], check=True)
         print("Repo cloned successfully. Starting to monitor changes...")
     else:
         print("Repo already exists. Starting to monitor changes...")
