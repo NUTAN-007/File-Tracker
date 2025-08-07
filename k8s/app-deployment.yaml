@@ -13,8 +13,7 @@ spec:
       labels:
         app: text-tracker
     spec:
-      imagePullPolicy: Always
-      hostNetwork: true
+      hostNetwork: trueagePullPolicy: Always
       imagePullSecrets:
         - name: regcred
       containers:
@@ -32,6 +31,7 @@ spec:
                 name: db-secret
         - name: sidecar
           image: nutan007/text-tracker-sidecar:latest
+          imagePullPolicy: Always
           volumeMounts:
             - name: repo-volume
               mountPath: /repo
