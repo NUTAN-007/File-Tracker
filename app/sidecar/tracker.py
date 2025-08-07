@@ -41,12 +41,15 @@ def insert_change(author, timestamp, content):
 if __name__ == "__main__":
     if not os.path.exists(os.path.join(REPO_DIR, ".git")):
         print("Cloning repo into /repo...")
-        subprocess.check_call(["git", "clone", GIT_REPO_URL, REPO_DIR])
-    print("Entering loop to monitor changes")
+        result = subprocess.run(["git", "clone", GIT_REPO_URL, REPO_DIR], capture_output=True, text=True)
+        print("Return code:", result.returncode)
+        print("STDOUT:\n", result.stdout)
+        print("STDERR:\n", result.stderr)
+        print("Repo cloned successfully. Starting to monitor changes...")
     while True:
         try:
             if file_has_changed():
-                result = subprocess.run(["git", "-C", REPO_DIR, "pull", "--rebase"], check=True)
+                subprocess.check_call(["git", "-C", REPO_DIR, "pull", "--rebase"])
                 author, timestamp = get_latest_commit_info()
                 with open(os.path.join(REPO_DIR, FILE_TO_TRACK), 'r') as f:
                     content = f.read()
