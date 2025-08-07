@@ -15,18 +15,43 @@ DB_PASS = os.getenv("POSTGRES_PASSWORD")
 DB_HOST = os.getenv("POSTGRES_HOST", "postgres.tracker-ns")
 
 def get_latest_commit_info():
-    author = subprocess.run(
-        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an"]).decode().strip()
-    timestamp = subprocess.run(
-        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI"]).decode().strip()
+    result_author = subprocess.run(
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    author = result_author.stdout.strip()
+
+    result_timestamp = subprocess.run(
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    timestamp = result_timestamp.stdout.strip()
     return author, timestamp
 
 def file_has_changed():
-    subprocess.check_call(["git", "-C", REPO_DIR, "fetch"])
-    local_hash = subprocess.run(["git", "-C", REPO_DIR, "rev-parse", "HEAD"]).strip()
-    remote_hash = subprocess.run(["git", "-C", REPO_DIR, "rev-parse", "@{u}"]).strip()
-    return local_hash != remote_hash
+    subprocess.run(["git", "-C", REPO_DIR, "fetch"], check=True)
+    
+    local_hash_result = subprocess.run(
+        ["git", "-C", REPO_DIR, "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    local_hash = local_hash_result.stdout.strip()
 
+    remote_hash_result = subprocess.run(
+        ["git", "-C", REPO_DIR, "rev-parse", "@{u}"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    remote_hash = remote_hash_result.stdout.strip()
+
+    return local_hash != remote_hash
 
 def insert_change(author, timestamp, content):
     conn = psycopg2.connect(
@@ -41,18 +66,32 @@ def insert_change(author, timestamp, content):
 if __name__ == "__main__":
     if not os.path.exists(os.path.join(REPO_DIR, ".git")):
         print("Cloning repo into /repo...")
-        result = subprocess.run(["git", "clone", GIT_REPO_URL, REPO_DIR], capture_output=True, text=True)
+        result = subprocess.run(
+            ["git", "clone", GIT_REPO_URL, REPO_DIR],
+            capture_output=True,
+            text=True,
+            check=True
+        )
         print("Return code:", result.returncode)
         print("STDOUT:\n", result.stdout)
         print("STDERR:\n", result.stderr)
-        subprocess.run(["git", "-C", REPO_DIR, "branch", "--set-upstream-to=origin/main"], check=True)
+        subprocess.run(
+            ["git", "-C", REPO_DIR, "branch", "--set-upstream-to=origin/main"],
+            check=True
+        )
         print("Repo cloned successfully. Starting to monitor changes...")
     else:
         print("Repo already exists. Starting to monitor changes...")
+
     while True:
         try:
             if file_has_changed():
-                subprocess.run(["git", "-C", REPO_DIR, "pull", "--rebase"],capture_output=True, text=True)
+                subprocess.run(
+                    ["git", "-C", REPO_DIR, "pull", "--rebase"],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
                 author, timestamp = get_latest_commit_info()
                 with open(os.path.join(REPO_DIR, FILE_TO_TRACK), 'r') as f:
                     content = f.read()
