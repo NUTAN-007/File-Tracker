@@ -55,6 +55,8 @@ pipeline {
 
                     # Apply all manifests
                     kubectl apply -f k8s/web-configmap.yaml
+		    kubectl apply -f k8s/postgres-pv.yaml
+		    kubectl apply -f k8s/postgres-pvc.yaml 
                     kubectl apply -f k8s/postgres-deployment.yaml
                     kubectl apply -f k8s/app-deployment.yaml
                     kubectl apply -f k8s/app-service.yaml
