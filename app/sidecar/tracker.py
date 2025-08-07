@@ -79,10 +79,7 @@ if __name__ == "__main__":
         print("STDOUT:\n", result.stdout)
         print("STDERR:\n", result.stderr)
 
-        # ✅ Checkout main branch explicitly
         subprocess.run(["git", "-C", REPO_DIR, "checkout", "main"], check=True)
-
-        # ✅ Set upstream properly (after checkout)
         subprocess.run(["git", "-C", REPO_DIR, "branch", "--set-upstream-to=origin/main", "main"], check=True)
 
         print("Repo cloned successfully. Starting to monitor changes...")
