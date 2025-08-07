@@ -29,7 +29,8 @@ spec:
               subPath: init.sql
       volumes:
         - name: pgdata
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: postgres-pvc
         - name: init-script
           configMap:
             name: init-sql

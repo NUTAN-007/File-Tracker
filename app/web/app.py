@@ -15,6 +15,7 @@ HTML_TEMPLATE = """
 <html>
 <head>
     <title>Tracked File Viewer</title>
+    <meta http-equiv="refresh" content="30"> <!-- Refresh every 30s -->
 </head>
 <body>
     <h1>File Content</h1>

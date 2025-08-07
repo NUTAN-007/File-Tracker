@@ -25,7 +25,10 @@ def file_has_changed():
     subprocess.check_call(["git", "-C", REPO_DIR, "fetch"])
     local_hash = subprocess.check_output(["git", "-C", REPO_DIR, "rev-parse", "HEAD"]).strip()
     remote_hash = subprocess.check_output(["git", "-C", REPO_DIR, "rev-parse", "@{u}"]).strip()
+    print(f"Local HEAD: {local_hash.decode()}")
+    print(f"Remote HEAD: {remote_hash.decode()}")
     return local_hash != remote_hash
+
 
 def insert_change(author, timestamp, content):
     conn = psycopg2.connect(
