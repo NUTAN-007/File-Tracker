@@ -5,4 +5,4 @@ metadata:
   namespace: tracker-ns
 data:
   TRACKED_FILE_PATH: "/repo/tracked-file.txt"
-  DB_HOST: "postgres"
+  DB_HOST: "postgres.tracker-ns.svc.cluster.local"
