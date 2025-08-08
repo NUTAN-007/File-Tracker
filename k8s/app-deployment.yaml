@@ -13,7 +13,6 @@ spec:
       labels:
         app: text-tracker
     spec:
-      hostNetwork: true
       imagePullSecrets:
         - name: regcred
       containers:
