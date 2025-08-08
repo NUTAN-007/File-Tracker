@@ -10,5 +10,11 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 5000
-      nodePort: 30147
-  type: NodePort
+      #nodePort: 30147
+  type: LoadBalancer
+  # Uncomment the line below to expose the service on a specific node port
+  # type: NodePort
+  # ports:
+  #   - port: 80
+  #     targetPort: 5000
+  #     nodePort: 30147   
