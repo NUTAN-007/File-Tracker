@@ -17,3 +17,4 @@ One of the cornerstones of DevOps is the feedback loop. The faster you get feedb
 DevOps is a journey — not a destination. Start small, automate what hurts the most, and build a culture of trust and accountability. In the end, it’s about delivering better software, faster.
 
 *“You build it, you run it.” – Werner Vogels*
+changes made
