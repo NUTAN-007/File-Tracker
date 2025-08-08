@@ -34,15 +34,3 @@ spec:
         - name: init-script
           configMap:
             name: init-sql
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: postgres
-  namespace: tracker-ns
-spec:
-  selector:
-    app: postgres
-  ports:
-    - port: 5432
-      targetPort: 5432

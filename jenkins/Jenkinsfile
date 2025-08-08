@@ -30,9 +30,9 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             environment {
-                POSTGRES_USER = credentials('pg-user')         // Jenkins secret text credential
-                POSTGRES_PASSWORD = credentials('pg-password') // Jenkins secret text credential
-                POSTGRES_DB = credentials('pg-db')             // Jenkins secret text credential
+                POSTGRES_USER = credentials('pg-user')         
+                POSTGRES_PASSWORD = credentials('pg-password') 
+                POSTGRES_DB = credentials('pg-db')             
             }
 
             steps {
