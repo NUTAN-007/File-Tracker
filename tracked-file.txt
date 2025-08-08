@@ -1,4 +1,4 @@
-🚀 Embracing DevOps Culture: A Journey Towards Continuous Delivery
+🚀Embracing DevOps Culture: A Journey Towards Continuous Delivery
 👋 Hello!
 
 In today's fast-paced software landscape, delivering value quickly and reliably is essential. DevOps is more than just a buzzword — it's a cultural shift that bridges the gap between development 👩‍💻 and operations 👨‍💼.
