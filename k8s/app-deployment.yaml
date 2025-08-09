@@ -4,6 +4,7 @@ metadata:
   name: text-tracker-app
   namespace: tracker-ns
 spec:
+  revisionHistoryLimit: 1
   replicas: 1
   selector:
     matchLabels:
