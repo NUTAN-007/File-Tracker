@@ -5,100 +5,120 @@ import psycopg2
 from datetime import datetime
 import traceback
 
+# Constants
 REPO_DIR = "/repo"
 FILE_TO_TRACK = "tracked-file.txt"
 GIT_REPO_URL = "https://github.com/NUTAN-007/File-Tracker.git"
 
+# Database credentials from env vars
 DB_NAME = os.getenv("POSTGRES_DB")
 DB_USER = os.getenv("POSTGRES_USER")
 DB_PASS = os.getenv("POSTGRES_PASSWORD")
-DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
 
-CHECK_INTERVAL = 10  # seconds
+# Connect to PostgreSQL
+def get_db_connection():
+    return psycopg2.connect(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASS,
+        host=DB_HOST
+    )
 
-def get_last_commit_files():
-    """Return list of files changed in last commit."""
-    try:
-        result = subprocess.run(
-            ["git", "-C", REPO_DIR, "diff", "--name-only", "HEAD~1", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True
+# Initialize table with commit_hash column
+def init_db():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS changes (
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMP NOT NULL,
+            author TEXT NOT NULL,
+            commit_hash TEXT NOT NULL
         )
-        return result.stdout.strip().split("\n") if result.stdout.strip() else []
-    except subprocess.CalledProcessError:
-        return []
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
 
+# Clone or update repo
+def clone_or_pull_repo():
+    if not os.path.exists(REPO_DIR):
+        subprocess.run(["git", "clone", GIT_REPO_URL, REPO_DIR], check=True)
+    else:
+        subprocess.run(["git", "-C", REPO_DIR, "pull"], check=True)
+
+# Get commit info
 def get_latest_commit_info():
-    """Get author and timestamp of latest commit."""
-    try:
-        author = subprocess.run(
-            ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an"],
-            capture_output=True,
-            text=True
-        ).stdout.strip()
+    result_author = subprocess.run(
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    author = result_author.stdout.strip()
 
-        timestamp = subprocess.run(
-            ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%ci"],
-            capture_output=True,
-            text=True
-        ).stdout.strip()
+    result_timestamp = subprocess.run(
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    timestamp = datetime.fromisoformat(result_timestamp.stdout.strip())
 
-        return author, timestamp
-    except Exception:
-        return None, None
+    result_hash = subprocess.run(
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%H"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    commit_hash = result_hash.stdout.strip()
 
-def read_tracked_file():
-    """Read tracked file content."""
-    try:
-        with open(os.path.join(REPO_DIR, FILE_TO_TRACK), "r") as f:
-            return f.read().strip()
-    except FileNotFoundError:
+    return timestamp, author, commit_hash
+
+# Store change in DB
+def store_change(timestamp, author, commit_hash):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO changes (timestamp, author, commit_hash)
+        VALUES (%s, %s, %s)
+    """, (timestamp, author, commit_hash))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# Get file hash for change detection
+def file_hash():
+    if not os.path.exists(os.path.join(REPO_DIR, FILE_TO_TRACK)):
         return None
-
-def save_to_db(content, author, timestamp):
-    """Save update details to PostgreSQL."""
-    try:
-        conn = psycopg2.connect(
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASS,
-            host=DB_HOST
-        )
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO changes (content, author, timestamp) VALUES (%s, %s, %s)",
-            (content, author, timestamp)
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print("Error saving to DB:", e)
-        traceback.print_exc()
+    result = subprocess.run(
+        ["sha256sum", os.path.join(REPO_DIR, FILE_TO_TRACK)],
+        capture_output=True,
+        text=True
+    )
+    return result.stdout.split()[0]
 
 def main():
-    # Clone repo if not present
-    if not os.path.exists(REPO_DIR):
-        subprocess.run(["git", "clone", GIT_REPO_URL, REPO_DIR])
+    init_db()
+    last_hash = None
 
-    # Always ensure repo is updated
-    subprocess.run(["git", "-C", REPO_DIR, "pull"])
+    while True:
+        try:
+            clone_or_pull_repo()
+            current_hash = file_hash()
 
-    changed_files = get_last_commit_files()
-    print("Changed files in last commit:", changed_files)
+            if current_hash and current_hash != last_hash:
+                timestamp, author, commit_hash = get_latest_commit_info()
+                store_change(timestamp, author, commit_hash)
+                print(f"[{timestamp}] Change detected by {author}, commit {commit_hash}")
+                last_hash = current_hash
 
-    if FILE_TO_TRACK in changed_files:
-        content = read_tracked_file()
-        author, timestamp = get_latest_commit_info()
+        except Exception as e:
+            print("Error:", e)
+            traceback.print_exc()
 
-        if content and author and timestamp:
-            save_to_db(content, author, timestamp)
-            print(f"Updated DB - {author} at {timestamp}")
-        else:
-            print("File change detected but missing commit info.")
-    else:
-        print(f"No changes in {FILE_TO_TRACK}, skipping DB update.")
+        time.sleep(10)  # Check every 10 seconds
 
 if __name__ == "__main__":
     main()
