@@ -28,19 +28,14 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
-            environment {
-                POSTGRES_USER = credentials('pg-user')         
-                POSTGRES_PASSWORD = credentials('pg-password') 
-                POSTGRES_DB = credentials('pg-db')             
-            }
         stage('Run Update Script if tracked-file.txt Changed') {
             steps {
                 script {
-                    
+                    // Get previous and current commit SHA from Jenkins env variables
                     def prevCommit = env.GIT_PREVIOUS_COMMIT ?: "HEAD~1"
                     def currCommit = env.GIT_COMMIT ?: "HEAD"
                     
+                    // Check if tracked-file.txt changed in commit range
                     def changed = sh(
                         script: "git diff --name-only ${prevCommit} ${currCommit} | grep -w 'tracked-file.txt' || true",
                         returnStatus: true
@@ -55,6 +50,14 @@ pipeline {
                 }
             }
         }
+        
+        stage('Deploy to Kubernetes') {
+            environment {
+                POSTGRES_USER = credentials('pg-user')         
+                POSTGRES_PASSWORD = credentials('pg-password') 
+                POSTGRES_DB = credentials('pg-db')             
+            }
+
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
                     sh '''
