@@ -7,6 +7,6 @@ spec:
     storage: 1Gi
   accessModes:
     - ReadWriteOnce
-  storageClassName: manual
+  storageClassName: manuall
   hostPath:
     path: /mnt/data/postgres
