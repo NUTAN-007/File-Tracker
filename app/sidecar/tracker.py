@@ -12,98 +12,56 @@ GIT_REPO_URL = "https://github.com/NUTAN-007/File-Tracker.git"
 DB_NAME = os.getenv("POSTGRES_DB")
 DB_USER = os.getenv("POSTGRES_USER")
 DB_PASS = os.getenv("POSTGRES_PASSWORD")
-DB_HOST = os.getenv("POSTGRES_HOST", "postgres.tracker-ns.svc.cluster.local")
+DB_HOST = os.getenv("POSTGRES_HOST")
 
-def get_latest_commit_info(file_path):
+def connect_db():
+    return psycopg2.connect(
+        dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST
+    )
+
+def get_latest_commit_info():
+    result_files = subprocess.run(
+        ["git", "-C", REPO_DIR, "diff", "--name-only", "HEAD~1", "HEAD"],
+        capture_output=True, text=True, check=True
+    )
+    changed_files = result_files.stdout.strip().split("\n")
+    if FILE_TO_TRACK not in changed_files:
+        return None, None
+
     result_author = subprocess.run(
-        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an", "--", file_path],
-        capture_output=True,
-        text=True,
-        check=True
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an", "--", FILE_TO_TRACK],
+        capture_output=True, text=True, check=True
     )
     author = result_author.stdout.strip()
 
     result_timestamp = subprocess.run(
-        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI", "--", file_path],
-        capture_output=True,
-        text=True,
-        check=True
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI", "--", FILE_TO_TRACK],
+        capture_output=True, text=True, check=True
     )
     timestamp = result_timestamp.stdout.strip()
+
     return author, timestamp
-#
-def file_has_changed():
-    subprocess.run(["git", "-C", REPO_DIR, "fetch"], check=True)
-    
-    local_hash_result = subprocess.run(
-        ["git", "-C", REPO_DIR, "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True
-    )
-    local_hash = local_hash_result.stdout.strip()
 
-    remote_hash_result = subprocess.run(
-        ["git", "-C", REPO_DIR, "rev-parse", "@{u}"],
-        capture_output=True,
-        text=True,
-        check=True
-    )
-    remote_hash = remote_hash_result.stdout.strip()
-
-    print(f"[DEBUG] Local hash:  {local_hash}")
-    print(f"[DEBUG] Remote hash: {remote_hash}")
-
-    return local_hash != remote_hash
-
-def insert_change(author, timestamp, content):
-    conn = psycopg2.connect(
-        dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST
-    )
-    cur = conn.cursor()
-    cur.execute("INSERT INTO changes (author, timestamp, content) VALUES (%s, %s, %s)", 
-                (author, timestamp, content))
-    conn.commit()
-    conn.close()
-
-if __name__ == "__main__":
-    if not os.path.exists(os.path.join(REPO_DIR, ".git")):
-        print("Cloning repo into /repo...")
-        result = subprocess.run(
-            ["git", "clone", GIT_REPO_URL, REPO_DIR],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        print("Return code:", result.returncode)
-        print("STDOUT:\n", result.stdout)
-        print("STDERR:\n", result.stderr)
-
-        subprocess.run(["git", "-C", REPO_DIR, "checkout", "main"], check=True)
-        subprocess.run(["git", "-C", REPO_DIR, "branch", "--set-upstream-to=origin/main", "main"], check=True)
-
-        print("Repo cloned successfully. Starting to monitor changes...")
-    else:
-        print("Repo already exists. Starting to monitor changes...")
-
+def track_changes():
+    last_author, last_timestamp = None, None
     while True:
         try:
-            if file_has_changed():
-                print("[INFO] Change detected! Pulling latest changes...")
-                subprocess.run(
-                    ["git", "-C", REPO_DIR, "pull", "--rebase"],
-                    capture_output=True,
-                    text=True,
-                    check=True
-                )
-                author, timestamp = get_latest_commit_info(FILE_TO_TRACK)
-                with open(os.path.join(REPO_DIR, FILE_TO_TRACK), 'r') as f:
-                    content = f.read()
-                print(f"[INFO] Change by {author} at {timestamp}")
-                insert_change(author, timestamp, content)
-            else:
-                print("[INFO] No change detected.")
+            subprocess.run(["git", "-C", REPO_DIR, "pull"], check=True)
+            author, timestamp = get_latest_commit_info()
+            if author and timestamp and (author != last_author or timestamp != last_timestamp):
+                with connect_db() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "INSERT INTO changes (timestamp, author) VALUES (%s, %s)",
+                            (timestamp, author)
+                        )
+                        conn.commit()
+                last_author, last_timestamp = author, timestamp
+                print(f"Last Update\nAuthor: {author}\nTimestamp: {timestamp}")
         except Exception as e:
-            print("[ERROR] An exception occurred:")
+            print(f"Error: {e}")
             traceback.print_exc()
-        time.sleep(30)
+        time.sleep(10)
+
+if __name__ == "__main__":
+    track_changes()
