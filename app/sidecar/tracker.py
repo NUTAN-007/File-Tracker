@@ -41,7 +41,7 @@ def get_latest_commit_info():
     timestamp = result_timestamp.stdout.strip()
 
     return author, timestamp
-##
+
 def track_changes():
     last_author, last_timestamp = None, None
     while True:
