@@ -31,7 +31,7 @@ def get_latest_commit_info(file_path):
     )
     timestamp = result_timestamp.stdout.strip()
     return author, timestamp
-
+#
 def file_has_changed():
     subprocess.run(["git", "-C", REPO_DIR, "fetch"], check=True)
     
