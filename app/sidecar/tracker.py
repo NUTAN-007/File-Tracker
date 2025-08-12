@@ -111,7 +111,7 @@ if __name__ == "__main__":
                 except FileNotFoundError:
                     new_content = ""
 
-                # Compare the contents
+                
                 if old_content != new_content:
                     author, timestamp = get_latest_commit_info()
                     print(f"[INFO] Content of {FILE_TO_TRACK} has changed. Pushing to DB...")
