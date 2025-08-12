@@ -1,4 +1,4 @@
-📝Static File Tracker.
+📝Static File Tracker
 
 🎯 What It Does:
 📂🔍🕒📡
