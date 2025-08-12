@@ -1,7 +1,8 @@
 import os
+import time
 import subprocess
 import psycopg2
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import traceback
 
 REPO_DIR = "/repo"
@@ -11,67 +12,92 @@ GIT_REPO_URL = "https://github.com/NUTAN-007/File-Tracker.git"
 DB_NAME = os.getenv("POSTGRES_DB")
 DB_USER = os.getenv("POSTGRES_USER")
 DB_PASS = os.getenv("POSTGRES_PASSWORD")
-DB_HOST = os.getenv("POSTGRES_HOST")
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 
-def run_git_command(cmd):
-    return subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        check=True
-    ).stdout.strip()
+# Function to get commit info (author, timestamp, commit hash)
+def get_latest_commit_info():
+    try:
+        result_author = subprocess.run(
+            ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        author = result_author.stdout.strip()
 
-def get_latest_commit_info_for_file():
-    commit_hash = run_git_command(["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%H", "--", FILE_TO_TRACK])
-    author = run_git_command(["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an", "--", FILE_TO_TRACK])
-    timestamp = run_git_command(["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI", "--", FILE_TO_TRACK])
-    return commit_hash, author, timestamp
+        result_timestamp = subprocess.run(
+            ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        utc_timestamp_str = result_timestamp.stdout.strip()
+        utc_time = datetime.fromisoformat(utc_timestamp_str.replace("Z", "+00:00"))
 
+        # Convert UTC to IST (UTC+5:30)
+        ist_time = utc_time.astimezone(timezone(timedelta(hours=5, minutes=30)))
+
+        result_hash = subprocess.run(
+            ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%H"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        commit_hash = result_hash.stdout.strip()
+
+        return author, ist_time, commit_hash
+
+    except subprocess.CalledProcessError:
+        print("Error retrieving git commit info")
+        return None, None, None
+
+# Function to clone or pull repo
 def clone_or_pull_repo():
     if not os.path.exists(REPO_DIR):
+        print("Cloning repository...")
         subprocess.run(["git", "clone", GIT_REPO_URL, REPO_DIR], check=True)
     else:
-        subprocess.run(["git", "-C", REPO_DIR, "fetch", "origin"], check=True)
-        subprocess.run(["git", "-C", REPO_DIR, "reset", "--hard", "origin/main"], check=True)
+        print("Pulling latest changes...")
+        subprocess.run(["git", "-C", REPO_DIR, "pull"], check=True)
 
-def get_last_commit_from_db(conn):
-    with conn.cursor() as cur:
-        cur.execute("SELECT commit_hash FROM changes ORDER BY id DESC LIMIT 1;")
-        row = cur.fetchone()
-        return row[0] if row else None
-
-def insert_change_to_db(conn, commit_hash, author, timestamp):
-    with conn.cursor() as cur:
-        cur.execute("INSERT INTO changes (commit_hash, author, timestamp) VALUES (%s, %s, %s);",
-                    (commit_hash, author, timestamp))
-    conn.commit()
-
-def main():
+# Function to store commit info in DB
+def store_commit_info(author, timestamp, commit_hash):
     try:
-        clone_or_pull_repo()
-
-        commit_hash, author, timestamp = get_latest_commit_info_for_file()
-
         conn = psycopg2.connect(
             dbname=DB_NAME,
             user=DB_USER,
             password=DB_PASS,
-            host=DB_HOST
+            host=DB_HOST,
+            port=DB_PORT
         )
-
-        last_commit_in_db = get_last_commit_from_db(conn)
-
-        if commit_hash != last_commit_in_db:
-            insert_change_to_db(conn, commit_hash, author, timestamp)
-            print(f"Inserted new change: {commit_hash}, {author}, {timestamp}")
-        else:
-            print("No change in tracked file — skipping insert.")
-
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO changes (timestamp, author, commit_hash)
+            VALUES (%s, %s, %s)
+        """, (timestamp, author, commit_hash))
+        conn.commit()
+        cur.close()
         conn.close()
-
+        print(f"Stored commit: {commit_hash} by {author} at {timestamp}")
     except Exception as e:
-        print("Error:", e)
+        print("Error inserting into database:", e)
         traceback.print_exc()
 
+# Main loop
 if __name__ == "__main__":
-    main()
+    last_commit = None
+    while True:
+        try:
+            clone_or_pull_repo()
+            author, timestamp, commit_hash = get_latest_commit_info()
+
+            if commit_hash and commit_hash != last_commit:
+                store_commit_info(author, timestamp, commit_hash)
+                last_commit = commit_hash
+
+        except Exception as e:
+            print("Error in main loop:", e)
+            traceback.print_exc()
+
+        time.sleep(10)
