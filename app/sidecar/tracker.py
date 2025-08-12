@@ -34,7 +34,7 @@ def get_latest_commit_info():
 
 def file_has_changed():
     subprocess.run(["git", "-C", REPO_DIR, "fetch"], check=True)
-
+    
     local_hash_result = subprocess.run(
         ["git", "-C", REPO_DIR, "rev-parse", "HEAD"],
         capture_output=True,
@@ -61,7 +61,7 @@ def insert_change(author, timestamp, content):
         dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST
     )
     cur = conn.cursor()
-    cur.execute("INSERT INTO changes (author, timestamp, content) VALUES (%s, %s, %s)",
+    cur.execute("INSERT INTO changes (author, timestamp, content) VALUES (%s, %s, %s)", 
                 (author, timestamp, content))
     conn.commit()
     conn.close()
@@ -89,13 +89,6 @@ if __name__ == "__main__":
     while True:
         try:
             if file_has_changed():
-                # Read the current content of the file *before* pulling
-                try:
-                    with open(os.path.join(REPO_DIR, FILE_TO_TRACK), 'r') as f:
-                        old_content = f.read()
-                except FileNotFoundError:
-                    old_content = "" # Handle case where file might not exist initially
-
                 print("[INFO] Change detected! Pulling latest changes...")
                 subprocess.run(
                     ["git", "-C", REPO_DIR, "pull", "--rebase"],
@@ -103,25 +96,13 @@ if __name__ == "__main__":
                     text=True,
                     check=True
                 )
-
-                # Read the new content of the file *after* pulling
-                try:
-                    with open(os.path.join(REPO_DIR, FILE_TO_TRACK), 'r') as f:
-                        new_content = f.read()
-                except FileNotFoundError:
-                    new_content = ""
-
-                
-                if old_content != new_content:
-                    author, timestamp = get_latest_commit_info()
-                    print(f"[INFO] Content of {FILE_TO_TRACK} has changed. Pushing to DB...")
-                    print(f"[INFO] Change by {author} at {timestamp}")
-                    insert_change(author, timestamp, new_content)
-                else:
-                    print(f"[INFO] Repository changed, but content of {FILE_TO_TRACK} is the same.")
+                author, timestamp = get_latest_commit_info()
+                with open(os.path.join(REPO_DIR, FILE_TO_TRACK), 'r') as f:
+                    content = f.read()
+                print(f"[INFO] Change by {author} at {timestamp}")
+                insert_change(author, timestamp, content)
             else:
                 print("[INFO] No change detected.")
-
         except Exception as e:
             print("[ERROR] An exception occurred:")
             traceback.print_exc()
