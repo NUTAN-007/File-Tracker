@@ -14,9 +14,9 @@ DB_USER = os.getenv("POSTGRES_USER")
 DB_PASS = os.getenv("POSTGRES_PASSWORD")
 DB_HOST = os.getenv("POSTGRES_HOST", "postgres.tracker-ns.svc.cluster.local")
 
-def get_latest_commit_info():
+def get_latest_commit_info(file_path):
     result_author = subprocess.run(
-        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an"],
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%an", "--", file_path],
         capture_output=True,
         text=True,
         check=True
@@ -24,7 +24,7 @@ def get_latest_commit_info():
     author = result_author.stdout.strip()
 
     result_timestamp = subprocess.run(
-        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI"],
+        ["git", "-C", REPO_DIR, "log", "-1", "--pretty=format:%aI", "--", file_path],
         capture_output=True,
         text=True,
         check=True
@@ -96,7 +96,7 @@ if __name__ == "__main__":
                     text=True,
                     check=True
                 )
-                author, timestamp = get_latest_commit_info()
+                author, timestamp = get_latest_commit_info(FILE_TO_TRACK)
                 with open(os.path.join(REPO_DIR, FILE_TO_TRACK), 'r') as f:
                     content = f.read()
                 print(f"[INFO] Change by {author} at {timestamp}")
