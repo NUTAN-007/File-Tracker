@@ -3,5 +3,4 @@ CREATE TABLE IF NOT EXISTS changes (
     author TEXT NOT NULL,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
     content TEXT NOT NULL,
-    commit_hash TEXT NOT NULL
 );
