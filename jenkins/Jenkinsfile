@@ -34,7 +34,27 @@ pipeline {
                 POSTGRES_PASSWORD = credentials('pg-password') 
                 POSTGRES_DB = credentials('pg-db')             
             }
-
+        stage('Run Update Script if tracked-file.txt Changed') {
+            steps {
+                script {
+                    
+                    def prevCommit = env.GIT_PREVIOUS_COMMIT ?: "HEAD~1"
+                    def currCommit = env.GIT_COMMIT ?: "HEAD"
+                    
+                    def changed = sh(
+                        script: "git diff --name-only ${prevCommit} ${currCommit} | grep -w 'tracked-file.txt' || true",
+                        returnStatus: true
+                    )
+                    
+                    if (changed == 0) {
+                        echo "tracked-file.txt changed, running update script..."
+                        sh 'python3 app/sidecar/tracker.py'
+                    } else {
+                        echo "tracked-file.txt NOT changed, skipping update script."
+                    }
+                }
+            }
+        }
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
                     sh '''
